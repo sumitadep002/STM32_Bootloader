@@ -1,0 +1,10 @@
+14:26:16 **** Incremental Build of configuration Debug for project 01_Blink_Bootloader ****
+make -j4 all 
+arm-none-eabi-size  01_Blink_Bootloader.elf 
+   text	   data	    bss	    dec	    hex	filename
+   7908	     20	   1572	   9500	   251c	01_Blink_Bootloader.elf
+Finished building: default.size.stdout
+ 
+
+14:26:17 Build Finished. 0 errors, 0 warnings. (took 627ms)
+
