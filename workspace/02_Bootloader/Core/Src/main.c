@@ -103,8 +103,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  HAL_UART_Transmit(&huart1, (uint8_t*) "Hello World\r\n", sizeof("Hello World\r\n")-1, HAL_MAX_DELAY);
-	  HAL_Delay(500);
+	  printmsg
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -264,6 +263,11 @@ void printmsg(char *format,...)
 	HAL_UART_Transmit(&huart1,(uint8_t *)str, strlen(str),HAL_MAX_DELAY);
 	va_end(args);
  }
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	HAL_GPIO_TogglePin(LED_Red_GPIO_Port, LED_Red_Pin);
+}
 /* USER CODE END 4 */
 
 /**
