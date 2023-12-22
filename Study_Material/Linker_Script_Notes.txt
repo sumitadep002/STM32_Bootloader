@@ -1,0 +1,7 @@
+file with extention ld combines a number of object and archive files, relocates their data, and ties up symbol references. Usually, the last step in compiling a program is to run ld.
+
+When compiling programs for desktops🖥️, the linking process is taken care of by the toolchain. However, the linking process is more important when developing for embedded domain📟 as specific sections need to be placed in specific memory locations.
+
+To have better command over the linking process, a set of instructions is provided to the linker which tells it to put the different sections in the output binary in a specific way.
+
+
