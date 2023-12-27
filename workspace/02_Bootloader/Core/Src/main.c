@@ -63,6 +63,8 @@ void Process_UART_Commands();
 void printmsg(char *format,...);
 void cmd_get_version(uint8_t *buffer);
 uint8_t Check_CRC(uint8_t *buffer,uint32_t len, uint32_t host);
+void Send_NACK();
+uint16_t get_mcu_chip_id();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -321,6 +323,8 @@ void Process_UART_Commands()
 	case GET_VER:
 		cmd_get_version(buffer);
 		break;
+	case GET_HELP:
+		cmd_get_help(buffer);
 
 	default:
 		printmsg("Bootloader: Invalid Command Received\r\n");
@@ -348,6 +352,7 @@ void cmd_get_version(uint8_t *buffer)
 	}
 	else
 	{
+		Send_NACK();
 		printmsg("Bootloader: Checksum failed\r\n");
 	}
 
@@ -355,15 +360,26 @@ void cmd_get_version(uint8_t *buffer)
 void cmd_get_help(uint8_t *buffer) {
 
 	uint32_t cmd_len = buffer[0] + 1;
-	uint32_t CRC_Host = (uint32_t*) &buffer[cmd_len - 4];
+	uint32_t CRC_Host = *((uint32_t*) (buffer+cmd_len - 4));
 
 	//Verify the Checksum
-	if (Check_CRC(buffer[0], strlen(buffer), CRC_Host) == CRC_OK) {
+	if (Check_CRC(&buffer[0], strlen(buffer), CRC_Host) == CRC_OK) {
+		Send_ACK(buffer[0], sizeof(supported_commands));
 		printmsg("Bootloader: Checksum...Succeed\r\n");
+
 	} else {
+		Send_NACK();
 		printmsg("Bootloader: Checksum failed\r\n");
 	}
 }
+
+uint16_t get_mcu_chip_id()
+{
+	uint16_t chip_id;
+	chip_id = (uint16_t) (DBGMCU->IDCODE & 0x0FFF);
+}
+
+
 uint8_t Check_CRC(uint8_t *buffer,uint32_t len, uint32_t CRC_Host)
 {
 	uint8_t CRC_Value = 0xFF;
