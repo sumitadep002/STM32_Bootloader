@@ -1,5 +1,0 @@
-../Core/Src/main.c:64:5:main	16	static
-../Core/Src/main.c:113:6:SystemClock_Config	72	static
-../Core/Src/main.c:152:13:MX_GPIO_Init	32	static
-../Core/Src/main.c:176:6:Jump_To_App	24	static,ignoring_inline_asm
-../Core/Src/main.c:192:6:Error_Handler	4	static,ignoring_inline_asm

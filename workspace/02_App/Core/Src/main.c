@@ -21,10 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdint.h>
-#include <string.h>
-#include <stdarg.h>
-#include <stdio.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,26 +40,18 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-CRC_HandleTypeDef hcrc;
-
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-uint8_t Boot = 0;
-uint8_t buffer[100]={0};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_CRC_Init(void);
 /* USER CODE BEGIN PFP */
-void Jump_To_App();
-void Process_UART_Commands();
-void printmsg(char *format,...);
-void cmd_get_version(uint8_t *buffer);
-uint8_t Check_CRC(uint8_t *buffer,uint32_t len, uint32_t host);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -99,7 +88,6 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
-  MX_CRC_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -108,12 +96,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  printmsg("Bootloader:.....\r\n");
-	  HAL_Delay(5000);
-	  if(Boot)
-		  Process_UART_Commands();
-	  else
-		  Jump_To_App();
+	  HAL_GPIO_TogglePin(Green_LED_GPIO_Port, Green_LED_Pin);
+	  HAL_UART_Transmit(&huart1, (uint8_t*)"Blink:\r\n",sizeof("Blink:\r\n")-1,100);
+	  HAL_Delay(500);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -167,37 +152,6 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief CRC Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_CRC_Init(void)
-{
-
-  /* USER CODE BEGIN CRC_Init 0 */
-
-  /* USER CODE END CRC_Init 0 */
-
-  /* USER CODE BEGIN CRC_Init 1 */
-
-  /* USER CODE END CRC_Init 1 */
-  hcrc.Instance = CRC;
-  hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE;
-  hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_ENABLE;
-  hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
-  hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
-  hcrc.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
-  if (HAL_CRC_Init(&hcrc) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN CRC_Init 2 */
-
-  /* USER CODE END CRC_Init 2 */
-
-}
-
-/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -248,148 +202,20 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LED_Red_GPIO_Port, LED_Red_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(Green_LED_GPIO_Port, Green_LED_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : User_Button_Pin */
-  GPIO_InitStruct.Pin = User_Button_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(User_Button_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : LED_Red_Pin */
-  GPIO_InitStruct.Pin = LED_Red_Pin;
+  /*Configure GPIO pin : Green_LED_Pin */
+  GPIO_InitStruct.Pin = Green_LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LED_Red_GPIO_Port, &GPIO_InitStruct);
-
-  /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+  HAL_GPIO_Init(Green_LED_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
-//Send strings with multiple types of formats
-void printmsg(char *format,...)
- {
-	char str[80];
-
-	/*Extract the the argument list using VA apis */
-	va_list args;
-	va_start(args, format);
-	vsprintf(str, format,args);
-	HAL_UART_Transmit(&huart1,(uint8_t *)str, strlen(str),HAL_MAX_DELAY);
-	va_end(args);
- }
-
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-	if(GPIO_Pin == User_Button_Pin)
-	{
-		Boot = 1;
-	}
-}
-
-void Jump_To_App()
-{
-	void (*app_reset_handler)(void);
-	uint32_t msp_value = *(volatile uint32_t *) (0x08008000);
-	__set_MSP(msp_value);
-	uint32_t reset_handler_address = *(volatile uint32_t *) (0x08008000 + 4);
-	app_reset_handler = (void*) (reset_handler_address);
-	app_reset_handler();
-
-}
-
-void Process_UART_Commands()
-{
-	while(1)
-	{
-	printmsg("Bootloader: Command Mode Activated\r\n");
-	memset(buffer,0,100);
-	uint8_t length = 0;
-
-	HAL_UART_Receive(&huart1, &buffer[0], 1, HAL_MAX_DELAY);
-	length = buffer[0];
-	HAL_UART_Receive(&huart1, &buffer[1], length, HAL_MAX_DELAY);
-	switch(buffer[1])
-	{
-	case GET_VER:
-		cmd_get_version(buffer);
-		break;
-
-	default:
-		printmsg("Bootloader: Invalid Command Received\r\n");
-		break;
-
-
-	}
-	}
-
-}
-void cmd_get_version(uint8_t *buffer)
-{
-	uint8_t Bootloader_Version = 0x02;
-
-
-	uint32_t cmd_len = buffer[0]+1;
-	uint32_t CRC_Host = (uint32_t*)&buffer[cmd_len - 4];
-
-	//Verify the Checksum
-	if(Check_CRC(buffer[0],strlen(buffer),CRC_Host)==CRC_OK)
-	{
-		printmsg("Bootloader: Checksum...Succeed\r\n");
-		printmsg("Bootloader: Version %d\r\n",Bootloader_Version);
-
-	}
-	else
-	{
-		printmsg("Bootloader: Checksum failed\r\n");
-	}
-
-}
-void cmd_get_help(uint8_t *buffer) {
-
-	uint32_t cmd_len = buffer[0] + 1;
-	uint32_t CRC_Host = (uint32_t*) &buffer[cmd_len - 4];
-
-	//Verify the Checksum
-	if (Check_CRC(buffer[0], strlen(buffer), CRC_Host) == CRC_OK) {
-		printmsg("Bootloader: Checksum...Succeed\r\n");
-	} else {
-		printmsg("Bootloader: Checksum failed\r\n");
-	}
-}
-uint8_t Check_CRC(uint8_t *buffer,uint32_t len, uint32_t CRC_Host)
-{
-	uint8_t CRC_Value = 0xFF;
-	for(uint32_t i=0;i<len;i++)
-	{
-		uint32_t data = buffer[i];
-		CRC_Value = HAL_CRC_Accumulate(&hcrc, &data, 1);
-
-	}
-	if(CRC_Value == CRC_Host)
-	return CRC_OK;
-	return CRC_ERROR;
-}
-
-void Send_ACK(uint8_t cmd_code,uint8_t follow_len)
-{
-	uint8_t ack_buf[2];
-	ack_buf[0] = ACK;
-	ack_buf[1] = follow_len;
-	HAL_UART_Transmit(&huart1, ack_buf, 2, HAL_MAX_DELAY);
-}
-void Send_NACK()
-{
-	uint8_t nack = NACK;
-	HAL_UART_Transmit(&huart1, &nack, 1, HAL_MAX_DELAY);
-}
 
 /* USER CODE END 4 */
 

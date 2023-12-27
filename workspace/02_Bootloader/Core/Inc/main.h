@@ -47,7 +47,15 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
+#define GET_VER		0x51
+#define GET_HELP 	0x52
 
+
+#define ACK		0xA5
+#define NACK	0x7F
+
+#define CRC_OK		0x01
+#define CRC_ERROR	0x00
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -58,6 +66,9 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define User_Button_Pin GPIO_PIN_0
+#define User_Button_GPIO_Port GPIOA
+#define User_Button_EXTI_IRQn EXTI0_IRQn
 #define LED_Red_Pin GPIO_PIN_9
 #define LED_Red_GPIO_Port GPIOB
 
