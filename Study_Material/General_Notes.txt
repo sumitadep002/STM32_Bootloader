@@ -1,0 +1,16 @@
+1) What is Bootloader?
+-Honestly speaking in with respect to bare metal programming, it is nothing a but simple small scale app.
+-It is there to fullfill certain tasks like flashing new program, erase the flash, boot from different app and boot only from verified firmware.
+
+2) Memory partition?
+-Flash is the memory that we can partition depending on our need.
+-It stores the app and bootloader both.
+-It is mainly divided sector wise consider a flash memory is a book, which contains so many pages and you can decide to jump to the location of each chapter via looking at index of the book and each chapter may different size.
+
+
+3) Linker Script ?
+-It is a file which is being used by a program called linker script at the end of generating executable.
+-You can decide from where app should start via modifying linker script file.
+
+4) Organization of Bootloader and main app.
+-Bootloader for that i am working it is stored in 0x08000000 location from sector 0 to 3 (total 4).
