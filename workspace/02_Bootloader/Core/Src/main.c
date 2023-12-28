@@ -48,7 +48,8 @@ CRC_HandleTypeDef hcrc;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-
+uint8_t Boot = 0;
+uint8_t buffer[100]={0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -57,7 +58,13 @@ static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_CRC_Init(void);
 /* USER CODE BEGIN PFP */
-
+void Jump_To_App();
+void Process_UART_Commands();
+void printmsg(char *format,...);
+void cmd_get_version(uint8_t *buffer);
+uint8_t Check_CRC(uint8_t *buffer,uint32_t len, uint32_t host);
+void Send_NACK();
+uint16_t get_mcu_chip_id();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -103,7 +110,12 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  printmsg
+	  printmsg("Bootloader:.....\r\n");
+	  HAL_Delay(5000);
+	  if(Boot)
+		  Process_UART_Commands();
+	  else
+		  Jump_To_App();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -240,6 +252,12 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LED_Red_GPIO_Port, LED_Red_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin : User_Button_Pin */
+  GPIO_InitStruct.Pin = User_Button_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(User_Button_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : LED_Red_Pin */
   GPIO_InitStruct.Pin = LED_Red_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -247,11 +265,16 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_Red_GPIO_Port, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+//Send strings with multiple types of formats
 void printmsg(char *format,...)
  {
 	char str[80];
@@ -264,10 +287,126 @@ void printmsg(char *format,...)
 	va_end(args);
  }
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	HAL_GPIO_TogglePin(LED_Red_GPIO_Port, LED_Red_Pin);
+	if(GPIO_Pin == User_Button_Pin)
+	{
+		Boot = 1;
+	}
 }
+
+void Jump_To_App()
+{
+	void (*app_reset_handler)(void);
+	uint32_t msp_value = *(volatile uint32_t *) (0x08008000);
+	__set_MSP(msp_value);
+	uint32_t reset_handler_address = *(volatile uint32_t *) (0x08008000 + 4);
+	app_reset_handler = (void*) (reset_handler_address);
+	app_reset_handler();
+
+}
+
+void Process_UART_Commands()
+{
+	while(1)
+	{
+	printmsg("Bootloader: Command Mode Activated\r\n");
+	memset(buffer,0,100);
+	uint8_t length = 0;
+
+	HAL_UART_Receive(&huart1, &buffer[0], 1, HAL_MAX_DELAY);
+	length = buffer[0];
+	HAL_UART_Receive(&huart1, &buffer[1], length, HAL_MAX_DELAY);
+	switch(buffer[1])
+	{
+	case GET_VER:
+		cmd_get_version(buffer);
+		break;
+	case GET_HELP:
+		cmd_get_help(buffer);
+
+	default:
+		printmsg("Bootloader: Invalid Command Received\r\n");
+		break;
+
+
+	}
+	}
+
+}
+void cmd_get_version(uint8_t *buffer)
+{
+	uint8_t Bootloader_Version = 0x02;
+
+
+	uint32_t cmd_len = buffer[0]+1;
+	uint32_t CRC_Host = (uint32_t*)&buffer[cmd_len - 4];
+
+	//Verify the Checksum
+	if(Check_CRC(buffer[0],strlen(buffer),CRC_Host)==CRC_OK)
+	{
+		printmsg("Bootloader: Checksum...Succeed\r\n");
+		printmsg("Bootloader: Version %d\r\n",Bootloader_Version);
+
+	}
+	else
+	{
+		Send_NACK();
+		printmsg("Bootloader: Checksum failed\r\n");
+	}
+
+}
+void cmd_get_help(uint8_t *buffer) {
+
+	uint32_t cmd_len = buffer[0] + 1;
+	uint32_t CRC_Host = *((uint32_t*) (buffer+cmd_len - 4));
+
+	//Verify the Checksum
+	if (Check_CRC(&buffer[0], strlen(buffer), CRC_Host) == CRC_OK) {
+		Send_ACK(buffer[0], sizeof(supported_commands));
+		printmsg("Bootloader: Checksum...Succeed\r\n");
+
+	} else {
+		Send_NACK();
+		printmsg("Bootloader: Checksum failed\r\n");
+	}
+}
+
+uint16_t get_mcu_chip_id()
+{
+	uint16_t chip_id;
+	chip_id = (uint16_t) (DBGMCU->IDCODE & 0x0FFF);
+}
+
+
+uint8_t Check_CRC(uint8_t *buffer,uint32_t len, uint32_t CRC_Host)
+{
+	uint8_t CRC_Value = 0xFF;
+	for(uint32_t i=0;i<len;i++)
+	{
+		uint32_t data = buffer[i];
+		CRC_Value = HAL_CRC_Accumulate(&hcrc, &data, 1);
+
+	}
+	if(CRC_Value == CRC_Host)
+	return CRC_OK;
+	return CRC_ERROR;
+}
+
+void Send_ACK(uint8_t cmd_code,uint8_t follow_len)
+{
+	uint8_t ack_buf[2];
+	ack_buf[0] = ACK;
+	ack_buf[1] = follow_len;
+	HAL_UART_Transmit(&huart1, ack_buf, 2, HAL_MAX_DELAY);
+}
+void Send_NACK()
+{
+	uint8_t nack = NACK;
+	HAL_UART_Transmit(&huart1, &nack, 1, HAL_MAX_DELAY);
+}
+
 /* USER CODE END 4 */
 
 /**
