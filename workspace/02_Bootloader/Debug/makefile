@@ -60,8 +60,8 @@ all: main-build
 main-build: 02_Bootloader.elf secondary-outputs
 
 # Tool invocations
-02_Bootloader.elf 02_Bootloader.map: $(OBJS) $(USER_OBJS) /home/scaledgetechnology/Desktop/GitHub/STM32_Bootloader/workspace/02_Bootloader/STM32F334C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "02_Bootloader.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/scaledgetechnology/Desktop/GitHub/STM32_Bootloader/workspace/02_Bootloader/STM32F334C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="02_Bootloader.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+02_Bootloader.elf 02_Bootloader.map: $(OBJS) $(USER_OBJS) /home/sumit/Desktop/GitHub/STM32_Bootloader/workspace/02_Bootloader/STM32F334C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "02_Bootloader.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/sumit/Desktop/GitHub/STM32_Bootloader/workspace/02_Bootloader/STM32F334C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="02_Bootloader.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
