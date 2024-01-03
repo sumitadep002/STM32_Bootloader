@@ -368,7 +368,7 @@ void  Read_Host(void)
 		memset(bl_rx_buffer,0,100);
 		//here we will read and decode the commands coming from host
 		//first read only one byte from the host , which is the "length" field of the command packet
-    HAL_UART_Receive(&huart1,bl_rx_buffer,1,HAL_MAX_DELAY);
+		HAL_UART_Receive(&huart1,bl_rx_buffer,1,HAL_MAX_DELAY);
 		rcv_len= bl_rx_buffer[0];
 		HAL_UART_Receive(&huart1,&bl_rx_buffer[1],rcv_len,HAL_MAX_DELAY);
 		switch(bl_rx_buffer[1])
