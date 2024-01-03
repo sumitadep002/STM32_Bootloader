@@ -9,7 +9,7 @@
 //if "lowerfirst" is 1 , then LSB is returned first (not used)
 uint8_t word_to_byte(uint32_t addr, uint8_t index, uint8_t lowerfirst)
 {
-      uint8_t value = (addr >> ( 8 * ( index -1)) & 0x000000FF );
+      uint8_t value = (addr >> ( 8 * ( index -1)) & 0x000000FF );//last 8 bits will be removed and first 8 bits will be zeroed
       return value;
 }
 
@@ -29,7 +29,7 @@ uint32_t get_crc(uint8_t *buff, uint32_t len)
     for(uint32_t n = 0 ; n < len ; n++ )
     {
         uint32_t data = buff[n];
-        Crc = Crc ^ data;
+        Crc = Crc ^ data; //1's complement
         for(i=0; i<32; i++)
         {
 
